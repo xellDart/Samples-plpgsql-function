@@ -3,41 +3,30 @@ this function verifies if a record exists,
 if it does not exist it creates it 
 and returns the registration id
  */
-CREATE OR REPLACE FUNCTION check_country(name_table character varying, column_id_name character varying, column_mach_name character varying, value_mach_name character varying)                                                                                                                                     
+CREATE OR REPLACE FUNCTION checkcountry(text, text, timestamp)
   RETURNS integer AS
-$BODY$
+$func$
 DECLARE
-    response integer;
+  id integer;
 BEGIN
-    IF (value_mach_name IS NULL)  THEN
-        RETURN NULL;
-    END IF;
-    EXECUTE '
-    WITH s AS (
-        SELECT ' || quote_ident(column_id_name) || '
-        FROM  ' || quote_ident(name_table) || '
-        WHERE nombre_pais = ' || quote_literal(value_mach_name) || '
+   WITH s AS (
+        SELECT id_country FROM  countries
+        WHERE name_country = $2
     ), i AS (
-        INSERT INTO ' || quote_ident(name_table) || '(' || quote_ident(column_mach_name) || ')
-        SELECT ' || quote_literal(value_mach_name) || '
+        INSERT INTO countries (id_entity_char, name_country, creation_date, modification_date)
+        SELECT $1, $2, $3, $3
         WHERE NOT EXISTS (
-        SELECT ' || quote_ident(column_mach_name) || ' 
-        FROM  ' || quote_ident(name_table) || ' 
-        WHERE ' || quote_ident(column_mach_name) || ' = ' || quote_literal(value_mach_name) || '
+        SELECT name_country 
+        FROM  countries
+        WHERE name_country = $2
         )
-        RETURNING ' || quote_ident(column_id_name) || ' 
+    RETURNING id_country INTO id
     )
-    SELECT ' || quote_ident(column_id_name) || ' 
+    SELECT id_country 
     FROM i
     UNION ALL
-    SELECT ' || quote_ident(column_id_name) || ' 
-    FROM s;'
-    INTO response  ;
-    RETURN response;
- 
-END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
---Test function:
- SELECT check_country('table','value_to_return','column_to_compare','value');
+    SELECT id_country 
+    FROM s;
+    RETURN id;
+END
+$func$ LANGUAGE plpgsql;
